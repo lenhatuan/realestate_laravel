@@ -14,12 +14,37 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\IconColumn;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Model;
 
-class UserResource extends Resource
+
+class UserResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view',
+            'view_any',
+            'create',
+            'update',
+            'restore',
+            'restore_any',
+            'replicate',
+            'reorder',
+            'delete',
+            'delete_any',
+            'force_delete',
+            'force_delete_any',
+            'change_password',
+        ];
+    }
+
 
     public static function form(Form $form): Form
     {
@@ -99,8 +124,30 @@ class UserResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('Change Password')
+                        ->form([
+                            Forms\Components\TextInput::make('password')
+                                ->password()
+                                ->required()
+                                ->maxLength(255),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                          foreach ($records as $record)
+                          {
+                            $record->password = Hash::make($data['password']);
+                            $record->save();
+                          }
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->icon('heroicon-s-key')
+                    ,
                 ]),
-            ]);
+            ])
+            ->checkIfRecordIsSelectableUsing(
+                fn (Model $record): bool => auth()->user()->hasHigherLevelThan($record->level) || $record->is(auth()->user())
+            )
+            ;
+
     }
 
     public static function getPages(): array

@@ -13,6 +13,7 @@ use Filament\Models\Contracts\HasAvatar;
 use Spatie\Permission\Traits\HasRoles;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Filament\Models\Contracts\FilamentUser;
+use App\Traits\HasLevel;
 
 class User extends Authenticatable implements HasAvatar, FilamentUser
 {
@@ -23,6 +24,7 @@ class User extends Authenticatable implements HasAvatar, FilamentUser
     use TwoFactorAuthenticatable;
     use HasRoles;
     use HasPanelShield;
+    use HasLevel;
 
     /**
      * The attributes that are mass assignable.
